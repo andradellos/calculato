@@ -11,6 +11,7 @@ class CalcController{
 
         this.initialize();
         this.initButtonsEvents();
+        
     }
 
     addEventListenerAll(element, events, fn){
