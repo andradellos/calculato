@@ -10,8 +10,7 @@ class CalcController{
         this._currentDate;
 
         this.initialize();
-        this.initButtonsEvents();
-        
+        this.initButtonsEvents();        
     }
 
     addEventListenerAll(element, events, fn){
