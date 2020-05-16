@@ -96,8 +96,7 @@ class CalcController{
 
             }
 
-         }
-        
+         }        
     }
     execBooton(value){
        
