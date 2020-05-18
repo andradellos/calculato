@@ -9,7 +9,10 @@ class CalcController{
         this._timeEl = document.querySelector('#hora');
         this._currentDate;
         this.initialize();
-        this.initButtonsEvents();        
+        this.initButtonsEvents();   
+        this.initKeyboardEvents();
+        this._audioOnOff = true; 
+        this._audio = new Audio('click.mp3');    
     }
 
     addEventListenerAll(element, events, fn){
@@ -23,7 +26,7 @@ class CalcController{
 
     clearAll(){
         this.operation =[];
-        this.displayCalc = '';
+        this.setLastNumberDisplay();
     }
 
     setError(){
@@ -31,7 +34,8 @@ class CalcController{
     }
 
     clearEntry(){
-        this.operation.pop();
+        this.operation.pop(); 
+        this.setLastNumberDisplay();       
     }
 
     LastOperationIsNumber(){ 
@@ -57,7 +61,50 @@ class CalcController{
             }
         }
 
-        this.displayCalc = lastNumber;
+        this.displayCalc = lastNumber ? lastNumber : 0;
+    }
+
+    calc(value){
+
+        if  (this.operation.length >= 3 && value === '=')
+        {
+            let total = eval(this.operation.join(''));
+            this.operation = [ total];
+        }else{
+            if(this.operation.length > 3 ){ 
+
+                let lastOperation =  this.operation.pop();
+                let total = eval(this.operation.join(''));
+    
+                if(lastOperation === '%'){
+                    total = total / 100;
+                    this.operation = [ total];
+                }else{
+                    this.operation = [ total , lastOperation ];              
+                }
+            }
+        }
+
+        this.setLastNumberDisplay();
+    }
+
+    copyToClipBoard(){
+
+        let input = document.createElement('input');
+        input.value = this.displayCalc;
+        document.body.appendChild(input);
+        input.select();
+
+        document.execCommand('Copy'); // Copia o que está selecionado
+
+        input.remove();
+
+    }
+    pasteFromClipBoard(){
+         document.addEventListener('paste', e=> {
+             let text = e.clipboardData.getData('Text');
+             this.displayCalc = parseFloat(text);
+         })
     }
 
 //Quando apertar igual se o último for um operador apague do array
@@ -80,25 +127,14 @@ class CalcController{
          }         
          else {
  
-            this.operation.push(value);
-            this.setLastNumberDisplay();
-            if(this.operation.length > 3){
-
-              
-              let lastOperation =  this.operation.pop();
-
-              let total = eval(this.operation.join(''));
-
-              this.operation = [ total , lastOperation ];
-
-              this.displayCalc = total;
-
-            }
-
-         }        
+           this.operation.push(value);  
+           this.calc(value);
+         }
     }
     execBooton(value){
-       
+        
+        this.playAudio();
+
         switch (value) {
 
         case 'ac':
@@ -110,7 +146,7 @@ class CalcController{
         break;
 
         case 'porcento':
-            this.addOperation('/');
+            this.addOperation('%');
         break;
 
         case 'divisao':
@@ -130,7 +166,7 @@ class CalcController{
         break;
 
         case 'igual':
-             
+             this.calc('=');
         break;
 
         case 'ponto':
@@ -160,6 +196,75 @@ class CalcController{
       console.log(this.operation)
     }
 
+    initKeyboardEvents(){
+        document.addEventListener('keyup', e=> {
+          // console.log(e.key);
+
+          this.playAudio();
+
+            let value = e.key
+
+            switch (value) {
+
+                case 'Escape':
+                 this.clearAll();
+                break;
+        
+                case 'Backspace':
+                  this.clearEntry();
+                break;
+        
+                case '%':
+                    this.addOperation('%');
+                break;
+        
+                case '/':
+                    this.addOperation('/');
+                break;
+        
+                case '*':
+                    this.addOperation('*');
+                break;
+        
+                case '-':
+                    this.addOperation('-');
+                break;
+        
+                case '+':
+                    this.addOperation('+');
+                break;
+        
+                case 'Enter':
+                     this.calc('=');
+                break;
+        
+                case '.':
+                    this.addOperation('.');
+                break;
+        
+                case '0':
+                case '1':
+                case '2':
+                case '3':    
+                case '4':
+                case '5':
+                case '6':
+                case '7':
+                case '8':
+                case '9':
+        
+                    this.addOperation(parseInt(value));
+        
+                break;
+
+                case 'c':
+                  if(e.ctrlKey)  
+                    this.copyToClipBoard();
+                break;
+              }
+              console.log(this.operation)
+        })
+    }
     initButtonsEvents(){
 
         let buttons = document.querySelectorAll('#buttons > g, #parts > g');
@@ -180,9 +285,33 @@ class CalcController{
 
         setInterval(() =>{
             this.setDisplayDateTime();
-        }, 1000)       
+        }, 1000);
+        
+        this.setLastNumberDisplay();
+        this.pasteFromClipBoard();
+
+        document.querySelectorAll('.btn-ac').forEach( btn=> {
+
+            btn.addEventListener('dblclick', e=>{
+                this.toggleAudio();
+            });
+        });
     }
 
+    toggleAudio(){
+        this._audioOnOff = !this._audioOnOff;
+    }
+
+    playAudio(){
+
+        if(this._audioOnOff){
+
+            this._audio.currentTime = 0;
+
+            this._audio.play();
+        }
+
+    }
 
     setDisplayDateTime(){
         this.displayDate = this.currentDate.toLocaleDateString(this.locale, {day: '2-digit', month:'long', year: 'numeric'});
@@ -194,6 +323,11 @@ class CalcController{
     }
 
     set displayCalc(value){
+
+        if(value.toString().length > 10){
+            this.setError();
+            return false;
+        }
         this._displayCalcEl.innerHTML = value;
     }
 
